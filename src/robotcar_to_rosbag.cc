@@ -29,47 +29,54 @@ int main(int argc, char **argv) {
 			num_iterations = 1;
 			continue;
 		}
-		int substr_number = 0;
+		int substring_number = 0;
 		cout << gpsStr << endl;
-		string substr;
+		string substring;
 		stringstream ss(gpsStr);
 		sensor_msgs::NavSatFix gps_message;
 		while(ss.good()){
-			string substr;
-			getline(ss, substr, ',' );
-			substr_number++;
-			switch(substr_number) {
-;					cout << "timestamp: " << setprecision(10) << stod(substr) << endl;
-					gps_message.header.stamp = ros::Time(stod(substr));
+			string substring;
+			getline(ss, substring, ',' );
+			substring_number++;
+			switch(substring_number) {
+				case 1:
+				{
+					cout << "timestamp: " << setprecision(10) << stod(substring) << endl;
+					string gpssecs = substring.substr(0,10);
+					string gpsnsecs = substring.substr(10, 16);
+					cout << "secs: " << gpssecs << endl;
+					cout << "nsecs: " << gpsnsecs << endl;
+					gps_message.header.stamp = ros::Time(stod(gpssecs), stod(gpsnsecs));
 					gps_message.header.seq = num_iterations;
 					gps_message.status.service = 1;
 					break;
+				}
 				case 2:
-					cout << "num_satellites: " << setprecision(10) << stod(substr) << endl;
+					cout << "num_satellites: " << setprecision(10) << stod(substring) << endl;
 					break;
 				case 3:
-					cout << "latitude: " << setprecision(10) << stod(substr) << endl;
-					gps_message.latitude = stod(substr);
+					cout << "latitude: " << setprecision(10) << stod(substring) << endl;
+					gps_message.latitude = stod(substring);
 					break;
 				case 4:
-					cout << "longitude: " << setprecision(10) << stod(substr) << endl;
-					gps_message.longitude = stod(substr);
+					cout << "longitude: " << setprecision(10) << stod(substring) << endl;
+					gps_message.longitude = stod(substring);
 					break;
 				case 5:
-					cout << "altitude: " << setprecision(10) << stod(substr) << endl;
-					gps_message.altitude = stod(substr);
+					cout << "altitude: " << setprecision(10) << stod(substring) << endl;
+					gps_message.altitude = stod(substring);
 					break;
 				case 6:
-					cout << "latitude_sigma: " << setprecision(10) << stod(substr) << endl;
-					gps_message.position_covariance[0] = stod(substr)*stod(substr);
+					cout << "latitude_sigma: " << setprecision(10) << stod(substring) << endl;
+					gps_message.position_covariance[0] = stod(substring)*stod(substring);
 					break;
 				case 7:
-					cout << "longitude_sigma: " << setprecision(10) <<  stod(substr) << endl;
-					gps_message.position_covariance[4] = stod(substr)*stod(substr);
+					cout << "longitude_sigma: " << setprecision(10) <<  stod(substring) << endl;
+					gps_message.position_covariance[4] = stod(substring)*stod(substring);
 					break;
 				case 8:
-					cout << "altitude_sigma: " <<  setprecision(10) <<  stod(substr) << endl;
-					gps_message.position_covariance[8] = stod(substr)*stod(substr);
+					cout << "altitude_sigma: " <<  setprecision(10) <<  stod(substring) << endl;
+					gps_message.position_covariance[8] = stod(substring)*stod(substring);
 					break;
 				default:
 					break;
@@ -77,20 +84,25 @@ int main(int argc, char **argv) {
 		}
 		num_iterations++;
 		cout << num_iterations << endl;
-		//bag.write("fix", gps_message.header.stamp, gps_message);
+		bag.write("fix", gps_message.header.stamp, gps_message);
 	}
 	
 // Images
-	std::vector<std::string> filenames;
-	std::experimental::filesystem::path path("/home/thesidjway/datasets/RobotCar/2014-06-26-08-53-56/stereo/centre");
-	const stdfs::directory_iterator end{};
-	for( stdfs::directory_iterator iter{path} ; iter != end ; ++iter ) {
-		if(stdfs::is_regular_file(*iter)) {
-			cv::Mat image = cv::imread(iter->path().string(), CV_8UC1);
-			sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", image).toImageMsg();
-			cout << iter->path().filename() << endl;
-			//bag.write("centre", ros::Time((iter->path().filename().path().string())), msg);
-		}
+	string imgStr;
+	ifstream fin2 ("/home/thesidjway/datasets/RobotCar/2014-06-26-08-53-56/stereo.timestamps");
+	while(getline(fin2, imgStr))  {
+		stringstream ss;
+		double timestamp = stod(imgStr.substr(0, imgStr.length() - 2));
+		ss << setprecision(20) << "/home/thesidjway/datasets/RobotCar/2014-06-26-08-53-56/stereo/centre/" << timestamp <<".png";
+		cout << ss.str() << endl;
+		cv::Mat image = cv::imread(ss.str(), CV_8UC1);
+		string timestamp_read = imgStr.substr(0, 16);
+		string imgsecs = timestamp_read.substr(0, 10);
+		string imgnsecs = timestamp_read.substr(10,16);
+		//cout << "secs: " << imgsecs << endl;
+		//cout << "nsecs: " << imgnsecs << endl;
+		sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", image).toImageMsg();
+		bag.write("centre", ros::Time(stod(imgsecs), stod(imgsecs)), msg);
 	}
 	bag.close();
 }
