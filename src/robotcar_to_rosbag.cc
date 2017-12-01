@@ -46,14 +46,14 @@ int main(int argc, char **argv) {
 					string gpsnsecs = substring.substr(10, 16);
 					cout << "secs: " << gpssecs << endl;
 					cout << "nsecs: " << gpsnsecs << endl;
-					gps_message.header.stamp = ros::Time(stod(gpssecs), stod(gpsnsecs));
+					gps_message.header.stamp = ros::Time(stod(gpssecs), stod(gpsnsecs)*1000);
 					gps_message.header.seq = num_iterations;
 					gps_message.status.service = 1;
 					break;
 				}
 				case 2:
 					cout << "num_satellites: " << setprecision(10) << stod(substring) << endl;
-					break;
+					break                 ;
 				case 3:
 					cout << "latitude: " << setprecision(10) << stod(substring) << endl;
 					gps_message.latitude = stod(substring);
@@ -87,22 +87,25 @@ int main(int argc, char **argv) {
 		bag.write("fix", gps_message.header.stamp, gps_message);
 	}
 	
-// Images
+// Images     
 	string imgStr;
+        int count = 0;
 	ifstream fin2 ("/home/thesidjway/datasets/RobotCar/2014-06-26-08-53-56/stereo.timestamps");
 	while(getline(fin2, imgStr))  {
+		cout << "Count: " << count;
+		count++;
 		stringstream ss;
 		double timestamp = stod(imgStr.substr(0, imgStr.length() - 2));
-		ss << setprecision(20) << "/home/thesidjway/datasets/RobotCar/2014-06-26-08-53-56/stereo/centre/" << timestamp <<".png";
+		ss << setprecision(20) << "/home/thesidjway/datasets/RobotCar/2014-06-26-08-53-56/stereo/left/" << timestamp <<".png";
 		cout << ss.str() << endl;
 		cv::Mat image = cv::imread(ss.str(), CV_8UC1);
 		string timestamp_read = imgStr.substr(0, 16);
 		string imgsecs = timestamp_read.substr(0, 10);
 		string imgnsecs = timestamp_read.substr(10,16);
-		//cout << "secs: " << imgsecs << endl;
-		//cout << "nsecs: " << imgnsecs << endl;
+		cout << "secs: " << stod(imgsecs) << endl;
+		cout << "nsecs: " << stod(imgnsecs) << endl;
 		sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", image).toImageMsg();
-		bag.write("centre", ros::Time(stod(imgsecs), stod(imgsecs)), msg);
+		bag.write("left", ros::Time(stod(imgsecs), stod(imgnsecs)*1000), msg);
 	}
 	bag.close();
 }
